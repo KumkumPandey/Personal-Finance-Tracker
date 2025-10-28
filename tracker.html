@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Personal Finance Tracker</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Poppins", sans-serif;
+      background-color: #f4f7f8;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 50px auto;
+      background: #fff;
+      padding: 30px 40px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #222;
+      margin-bottom: 20px;
+    }
+
+    .summary {
+      display: flex;
+      justify-content: space-around;
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .summary div {
+      background-color: #f9fafc;
+      padding: 15px 25px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      width: 30%;
+    }
+
+    .summary h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .summary p {
+      font-size: 20px;
+      font-weight: bold;
+      margin: 8px 0 0;
+    }
+
+    form {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    input, select, button {
+      padding: 10px;
+      font-size: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    button {
+      grid-column: span 2;
+      background-color: #007bff;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      border: none;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #007bff;
+      color: white;
+    }
+
+    .income {
+      color: green;
+      font-weight: bold;
+    }
+
+    .expense {
+      color: red;
+      font-weight: bold;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>💰 Personal Finance Tracker</h1>
+
+    <div class="summary">
+      <div>
+        <h3>Income</h3>
+        <p id="income">₹0</p>
+      </div>
+      <div>
+        <h3>Expense</h3>
+        <p id="expense">₹0</p>
+      </div>
+      <div>
+        <h3>Balance</h3>
+        <p id="balance">₹0</p>
+      </div>
+    </div>
+
+    <form id="transactionForm">
+      <input type="text" id="desc" placeholder="Description" required />
+      <input type="number" id="amount" placeholder="Amount (₹)" required />
+      <select id="type" required>
+        <option value="">Select Type</option>
+        <option value="income">Income</option>
+        <option value="expense">Expense</option>
+      </select>
+      <input type="date" id="date" required />
+      <button type="submit">Add Transaction</button>
+    </form>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th>Type</th>
+          <th>Amount (₹)</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody id="transactionTable"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const form = document.getElementById('transactionForm');
+    const incomeDisplay = document.getElementById('income');
+    const expenseDisplay = document.getElementById('expense');
+    const balanceDisplay = document.getElementById('balance');
+    const tableBody = document.getElementById('transactionTable');
+
+    let totalIncome = 0;
+    let totalExpense = 0;
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const desc = document.getElementById('desc').value.trim();
+      const amount = parseFloat(document.getElementById('amount').value);
+      const type = document.getElementById('type').value;
+      const date = document.getElementById('date').value;
+
+      if (!desc || !amount || !type || !date) {
+        alert('Please fill all fields');
+        return;
+      }
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${desc}</td>
+        <td class="${type === 'income' ? 'income' : 'expense'}">${type}</td>
+        <td class="${type === 'income' ? 'income' : 'expense'}">₹${amount.toFixe
