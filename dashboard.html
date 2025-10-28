@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Smart Finance Tracker</title>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef0f5; margin: 0; }
+    .container {
+      max-width: 700px; margin: 40px auto; background: #fff; border-radius: 10px;
+      box-shadow: 0 3px 16px rgba(40,50,90,0.1); padding: 32px 26px 26px;
+    }
+    h1 { text-align: center; color: #2a313d; margin-bottom: 24px; }
+    #notification {
+      background: #20c997; color: #fff; text-align: center;
+      border-radius: 5px; padding: 10px; margin-bottom: 10px; display: none;
+    }
+    form {
+      display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 16px;
+    }
+    form input, form select, form button {
+      font-size: 1rem; padding: 8px 12px; border-radius: 6px;
+      border: 1px solid #bbc3ce; outline: none; transition: border-color 0.2s;
+    }
+    form button {
+      background: #0563bb; color: #fff; border: none; font-weight: 500;
+      letter-spacing: 0.5px; cursor: pointer;
+    }
+    form button:hover { background: #2e89fa; }
+    .expense-table table {
+      width: 100%; margin: 0; border-collapse: collapse; border-radius: 8px; overflow: hidden;
+    }
+    .expense-table th, .expense-table td {
+      padding: 12px 8px; border-bottom: 1px solid #f0f1f4; text-align: left; word-break: break-word;
+    }
+    .expense-table th { background: #f9fafb; color: #2a313d; }
+    .expense-table tr:last-child td { border-bottom: none; }
+    .action-btn {
+      border: none; border-radius: 4px; padding: 5px 8px; cursor: pointer;
+      margin-right: 4px; font-size: 0.98em;
+    }
+    .action-btn.edit { background: #fab005; color: #fff; }
+    .action-btn.delete { background: #fa5252; color: #fff; }
+    .total-amount {
+      text-align: right; font-size: 1.22rem; font-weight: bold;
+      color: #0563bb; margin-top: 10px;
+    }
+    .filters {
+      display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .filters label { font-size: 1em; color: #777; }
+    .filters select {
+      padding: 5px 8px; font-size: 1em; border-radius: 5px; border: 1px solid #bbc3ce;
+    }
+    @media (max-width: 650px) {
+      .container { padding: 10px 2vw; }
+      form { flex-direction: column; align-items: stretch; }
+      .expense-table th, .expense-table td { font-size: 0.98em; padding: 8px 4px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Smart Finance Tracker</h1>
+    <div id="notification"></div>
+    <form id="expense-form" autocomplete="off">
+      <input type="text" id="expense-name" placeholder="Expense Name" required />
+      <input type="number" id="expense-amount" min="0.01" step="0.01" placeholder="Amount (₹)" required />
+      <select id="expense-category" required>
+        <option value="" disabled selected>Select Category</option>
+        <option value="Food">Food</option>
+        <option value="Transport">Transport</option>
+        <option value="Rent">Rent</option>
+        <option value="Shopping">Shopping</option>
+        <option value="Bills">Bills</option>
+        <option value="Others">Others</option>
+      </select>
+      <input type="date" id="expense-date" required />
+      <button type="submit">Add Expense</button>
+    </form>
+    <div class="filters">
+      <label for="filter-category">Filter:</label>
+      <select id="filter-category">
+        <option value="All">All</option>
+        <option value="Food">Food</option>
+        <option value="Transport">Transport</option>
+        <option value="Rent">Rent</option>
+        <option value="Shopping">Shopping</option>
+        <option value="Bills">Bills</option>
+        <option value="Others">Others</option>
+      </select>
+    </div>
+    <div class="expense-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Expense</th>
+            <th>Amount (₹)</th>
+            <th>Category</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="expense-list"></tbody>
+      </table>
+      <div class="total-amount">
+        Total: ₹<span id="total-amount">0.00</span>
+      </div>
+    </div>
+  </div>
+  <script>
+    const expenseForm = document.getElementById("expense-form");
+    const expenseList = document.getElementById("expense-list");
+    const totalAmount = document.getElementById("total-amount");
+    const notification = document.getElementById("notification");
+    const filterCategory = document.getElementById("filter-category");
+
+    let expenses = [];
+    let editId = null;
+
+    function showNotification(msg, success=true) {
+      notification.textContent = msg;
+      notification.style.background = success ? "#20c997" : "#fa5252";
+      notification.style.display = "block";
+      setTimeout(() => notification.style.display = "none", 1800);
+    }
+
+    function displayExpenses(filteredExpenses = expenses) {
+      expenseList.innerHTML = "";
+      if(filteredExpenses.length === 0) {
+        expenseList.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#bbb">No expenses found.</td></tr>`;
+      } else {
+        filteredExpenses.forEach(expense => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${expense.name}</td>
+            <td>₹${expense.amount.toFixed(2)}</td>
+            <td>${expense.category}</td>
+            <td>${expense.date}</td>
+            <td>
+              <button class="action-btn edit" data-id="${expense.id}">Edit</button>
+              <button class="action-btn delete" data-id="${expense.id}">Delete</button>
+            </td>`;
+          expenseList.appendChild(row);
+        });
+      }
+      updateTotalAmount(filteredExpenses);
+    }
+
+    function updateTotalAmount(filteredExpenses = expenses) {
+      const total = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+      totalAmount.textContent = total.toFixed(2);
+    }
+
+    expenseForm.addEventListener("submit", e => {
+      e.preventDefault();
+      const name = document.getElementById("expense-name").value.trim();
+      const amount = parseFloat(document.getElementById("expense-amount").value);
+      const category = document.getElementById("expense-category").value;
+      const date = document.getElementById("expense-date").value;
+      if(!name || !amount || !category || !date) {
+        showNotification("Please fill all fields", false);
+        return;
+      }
+      if(editId) {
+        expenses = expenses.map(exp => exp.id === editId 
+          ? {...exp, name, amount, category, date}
+          : exp);
+        editId = null;
+        showNotification("Expense edited successfully!");
+      } else {
+        expenses.push({ id: Date.now(), name, amount, category, date });
+        showNotification("Expense added!");
+      }
+      expenseForm.reset();
+      displayExpenses(getFilteredExpenses());
+    });
+
+    expenseList.addEventListener("click", e => {
+      if(e.target.classList.contains("delete")) {
+        const id = parseInt(e.target.dataset.id);
+        expenses = expenses.filter(exp => exp.id !== id);
+        showNotification("Expense deleted!", true);
+        displayExpenses(getFilteredExpenses());
+      }
+      if(e.target.classList.contains("edit")) {
+        const id = parseInt(e.target.dataset.id);
+        const exp = expenses.find(exp => exp.id === id);
+        document.getElementById("expense-name").value = exp.name;
+        document.getElementById("expense-amount").value = exp.amount;
+        document.getElementById("expense-category").value = exp.category;
+        document.getElementById("expense-date").value = exp.date;
+        editId = id;
+      }
+    });
+
+    function getFilteredExpenses() {
+      const category = filterCategory.value;
+      if(category === "All") return expenses;
+      return expenses.filter(exp => exp.category === category);
+    }
+
+    filterCategory.addEventListener("change", () => {
+      displayExpenses(getFilteredExpenses());
+    });
+
+    // Initialize with zero expenses
+    displayExpenses();
+  </script>
+</body>
+</html>
